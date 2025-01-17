@@ -37,6 +37,23 @@ vault read identity/oidc/config
 ### **2. Bind an Identity/Entity to a Userpass User**
 To ensure JWT tokens are linked to an entity, bind the `userpass` user to an identity entity:
 
+#### **Create a Userpass Auth Engine***
+
+```bash
+vault auth enable userpass
+#> Success! Enabled userpass auth method at: userpass/
+
+vault write auth/userpass/users/example password=password
+#> Success! Data written to: auth/userpass/users/example
+```
+
+Get the accessor ID for the userpass path
+
+```bash
+vault auth list -detailed -format json | jq -r '.["userpass/"].accessor'
+#> auth_userpass_ae7d9bc4
+```
+
 #### **Create an Entity**
 ```bash
 vault write identity/entity name="example-entity" policies="default"
@@ -89,8 +106,7 @@ Assign the `oidc-policy` to the entity created earlier:
 
 ```bash
 vault write identity/entity/id/<entity_id> \
-  policies="default" \
-  identity_policies="oidc-policy"
+  policies="default,oidc-policy"
 ```
 
 ---
@@ -131,7 +147,9 @@ vault read identity/oidc/role/example
 ---
 
 ### **6. Generate a JWT**
-Use the defined role to generate a JWT:
+
+Login as the userpass login. 
+Use the defined role to generate a JWT
 
 ```bash
 vault read identity/oidc/token/example

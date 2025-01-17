@@ -47,7 +47,7 @@ try:
         public_key,
         algorithms=["RS256"],
         # Validate audience (Role client id)
-        audience="o7lS6Nqsfb7nGeAq9JXdIux9wO",
+        audience="jFq2NEZmvV73ssOj2ok3wwUOtW",
         issuer="http://127.0.0.1:8200/v1/identity/oidc"
     )
 except jwt.ExpiredSignatureError:
