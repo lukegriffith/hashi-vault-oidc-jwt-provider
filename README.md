@@ -9,8 +9,6 @@ This README outlines the steps to configure Vault as an OIDC provider, issue JWT
 The setup allows you to:
 1. Configure HashiCorp Vault as an OIDC provider.
 2. Define roles in Vault to issue JWTs with specific claims.
-3. Add a custom audience claim (`custom_aud`) for token validation.
-4. Bind an identity/entity to a `userpass` user and create an entity alias.
 5. Assign the necessary policy to allow access to the OIDC token endpoint and attach it to the entity.
 6. Validate the issued tokens using a Python script (`validate.py`) that:
    - Fetches Vault’s JWKS for public key verification.
@@ -121,9 +119,8 @@ vault write identity/oidc/role/example \
   allowed_redirect_uris="*" \
   ttl="1h" \
   user_claim="sub" \
-  bound_audiences="my-service" \
   key="default" \
-  templates='{"custom_aud": "my-service"}'
+  template='{"custom_claims": "XYZ"}'
 ```
 
 Verify the role:
@@ -140,7 +137,7 @@ Use the defined role to generate a JWT:
 vault read identity/oidc/token/example
 ```
 
-The response will include a token. Decode it to inspect claims like `custom_aud`, `sub`, `exp`, and `iss`.
+The response will include a token. Decode it to inspect claims like `aud`, `sub`, `exp`, `iss`.
 
 ---
 
@@ -165,31 +162,42 @@ Run the script:
 python validate.py <your-jwt>
 ```
 
-Expected output:
-- **Valid Token**:
-  ```plaintext
-  Token is valid!
-  Claims: {"custom_aud": "my-service", ...}
-  ```
-- **Invalid Token**:
-  ```plaintext
-  Invalid token: custom_aud does not match 'my-service'
-  ```
-
 ---
+
+### **8. Obtaining the Audience**
+
+#### Fetch the OIDC Role 
+
+```
+❯ vault read identity/oidc/role/example
+Key          Value
+---          -----
+client_id    o7lS6Nqsfb7nGeAq9JXdIux9wO
+key          default
+template     {"custom_claims": "XYZ"}
+ttl          1h
+```
+
+The client_id is the audience that is set on the JWT token, so each role can be targeted 
+at a service, and the servcie can use said client_id to validate its intended for it.
+
+Custom claims can be used to customise the token even further, and templates can be used
+to obtain metadata of the identity (think SCIM groups, etc)
+
 
 ## **Key Configuration Highlights**
 
 ### **OIDC Role Configuration**
 - **`allowed_redirect_uris`**: Specifies allowed callback URLs. Use `"*"` for testing.
-- **`bound_audiences`**: Defines the standard `aud` claim. Set to `"my-service"`.
-- **`templates`**: Adds custom claims, such as `custom_aud`.
+- **`aud`**: Audience in the JWT is the client_id of the oidc role.
+- **`templates`**: Adds custom claims, such as `custom_claims`.
 
 ### **JWT Validation Highlights**
 - The `validate.py` script:
   - Fetches Vault’s JWKS.
   - Verifies the JWT signature.
-  - Validates `custom_aud` against the expected audience (`my-service`).
+  - Validates `aud` against the expected audience (`role client id`).
+  - Validates custom claims
 
 ---
 

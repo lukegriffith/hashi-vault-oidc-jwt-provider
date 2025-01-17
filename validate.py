@@ -46,7 +46,8 @@ try:
         token,
         public_key,
         algorithms=["RS256"],
-        options={"verify_aud": False},  # Skip default audience validation
+        # Validate audience (Role client id)
+        audience="o7lS6Nqsfb7nGeAq9JXdIux9wO",
         issuer="http://127.0.0.1:8200/v1/identity/oidc"
     )
 except jwt.ExpiredSignatureError:
@@ -56,10 +57,10 @@ except jwt.InvalidTokenError as e:
     print(f"Invalid token: {e}")
     sys.exit(1)
 
-# Custom audience validation (check 'custom_aud' claim)
-expected_audience = "my-service"
-if decoded.get("custom_aud") != expected_audience:
-    print(f"Invalid token: custom_aud does not match '{expected_audience}'")
+# Custom audience validation (check 'custom_claims' claim)
+custom_claims = "XYZ"
+if decoded.get("custom_claims") != custom_claims:
+    print(f"Invalid token: custom_aud does not match '{custom_claims}'")
     sys.exit(1)
 
 # If all validations pass
