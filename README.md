@@ -55,8 +55,14 @@ vault auth list -detailed -format json | jq -r '.["userpass/"].accessor'
 ```
 
 #### **Create an Entity**
+
+Tie back the user to an email address.
+
+It might be possible to have this templated from an OIDC provider? 
+
 ```bash
-vault write identity/entity name="example-entity" policies="default"
+vault write identity/entity name="example-entity" policies="default,oidc-policy" metadata=email=test@example.com
+
 ```
 
 Retrieve the entity ID:
@@ -64,6 +70,20 @@ Retrieve the entity ID:
 vault read identity/entity/name/example-entity
 ```
 Take note of the `entity_id` from the output.
+
+#### Create a group and add entity to it 
+
+
+```bash
+vault write identity/group name=test
+```
+
+
+```bash
+vault write identity/group/id/<group_id> \
+  member_entity_ids="<entity_id>"
+```
+
 
 #### **Create an Entity Alias**
 Bind the `userpass` user to the entity by creating an alias:
@@ -130,13 +150,31 @@ vault list identity/oidc/key
 ### **5. Define an OIDC Role**
 Define a role (`example`) that issues JWTs:
 
+
+#### Create a template json
+
+Uses the metadata email and group names
+
+`template.json`
+```json
+{
+  "custom_claims": {
+    "email": {{identity.entity.metadata.email}},
+    "groups": {{identity.entity.groups.names}}
+  }
+}
+```
+
+#### Create role with template
+
+
 ```bash
 vault write identity/oidc/role/example \
   allowed_redirect_uris="*" \
   ttl="1h" \
   user_claim="sub" \
   key="default" \
-  template='{"custom_claims": "XYZ"}'
+  template=@template.json
 ```
 
 Verify the role:
